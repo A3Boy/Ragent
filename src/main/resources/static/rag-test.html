@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGent - RAG 智能问答测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #667eea;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .file-input {
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .result h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .result-content {
+      line-height: 1.8;
+      color: #333;
+      white-space: pre-wrap;
+    }
+
+    .result-content p {
+      margin-bottom: 10px;
+    }
+
+    .sources {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed #ddd;
+    }
+
+    .sources h4 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .source-item {
+      background: #f0f0f5;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .source-item .source-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      color: #667eea;
+      font-weight: 500;
+    }
+
+    .source-item .source-content {
+      color: #555;
+      line-height: 1.6;
+      max-height: 80px;
+      overflow: hidden;
+    }
+
+    .error {
+      border-left-color: #e74c3c;
+      background: #fdf2f2;
+    }
+
+    .error h3 {
+      color: #e74c3c;
+    }
+
+    .success {
+      border-left-color: #27ae60;
+      background: #f0fff4;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #667eea;
+      font-style: italic;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #667eea;
+      animation: blink 1s infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🤖 RAGent - RAG 智能问答测试</h1>
+
+    <!-- 文档上传部分 -->
+    <div class="section">
+      <h2>📤 上传文档</h2>
+      <div class="form-group">
+        <label for="file">选择文件（支持 txt、md、pdf、docx 等）</label>
+        <input type="file" id="file" class="file-input" accept=".txt,.md,.pdf,.doc,.docx,.html">
+      </div>
+      <button onclick="uploadDocument()" id="uploadBtn">上传文档</button>
+      <div id="uploadResult"></div>
+    </div>
+
+    <!-- 智能问答部分 -->
+    <div class="section">
+      <h2>💬 智能问答</h2>
+      <div class="form-group">
+        <label for="question">请输入问题</label>
+        <textarea id="question" rows="3" placeholder="例如：公司的报销标准是什么？"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="topK">检索文档数量 (topK)</label>
+        <input type="number" id="topK" value="3" min="1" max="10">
+      </div>
+
+      <button onclick="askQuestion()" id="askBtn">开始问答</button>
+      <div id="askResult"></div>
+      <div id="sourcesResult" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://localhost:8080';
+
+    // 上传文档
+    async function uploadDocument() {
+      const fileInput = document.getElementById('file');
+      const resultDiv = document.getElementById('uploadResult');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      if (!fileInput.files[0]) {
+        resultDiv.innerHTML = '<div class="result error"><h3>❌ 错误</h3><div class="result-content">请选择文件</div></div>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '上传中...';
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/documents/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ 上传成功</h3>
+                            <div class="result-content">
+                                文件名：${data.name}<br>
+                                文档ID：${data.documentId}
+                            </div>
+                        </div>
+                    `;
+        } else {
+          resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ 上传失败</h3>
+                            <div class="result-content">${data.error}</div>
+                        </div>
+                    `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ 请求失败</h3>
+                        <div class="result-content">${error.message}</div>
+                    </div>
+                `;
+      } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '上传文档';
+      }
+    }
+
+    // 智能问答（流式输出）
+    async function askQuestion() {
+      const questionInput = document.getElementById('question');
+      const topKInput = document.getElementById('topK');
+      const resultDiv = document.getElementById('askResult');
+      const sourcesDiv = document.getElementById('sourcesResult');
+      const askBtn = document.getElementById('askBtn');
+
+      const question = questionInput.value.trim();
+      if (!question) {
+        resultDiv.innerHTML = '<div class="result error"><h3>❌ 错误</h3><div class="result-content">请输入问题</div></div>';
+        return;
+      }
+
+      const requestBody = {
+        question: question,
+        topK: parseInt(topKInput.value)
+      };
+
+      askBtn.disabled = true;
+      askBtn.textContent = '思考中...';
+      questionInput.disabled = true;
+
+      // 初始化结果区域
+      resultDiv.innerHTML = `
+        <div class="result success">
+            <h3>✅ 答案</h3>
+            <div class="result-content" id="answerContent"></div>
+        </div>
+      `;
+      sourcesDiv.style.display = 'none';
+
+      const answerContent = document.getElementById('answerContent');
+      let fullAnswer = '';
+      let buffer = '';
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/rag/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          // 解码数据并添加到缓冲区
+          buffer += decoder.decode(value, { stream: true });
+
+          // 处理完整的 SSE 消息
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留最后一个不完整的行
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6); // 去掉 'data: ' 前缀
+
+              // 检查是否是错误消息
+              if (data.startsWith('错误：')) {
+                throw new Error(data.slice(3));
+              }
+
+              fullAnswer += data;
+              // 更新显示（添加光标效果）
+              answerContent.innerHTML = formatAnswer(fullAnswer) + '<span class="cursor"></span>';
+              // 自动滚动到底部
+              resultDiv.scrollTop = resultDiv.scrollHeight;
+            }
+          }
+        }
+
+        // 流结束，移除光标
+        answerContent.innerHTML = formatAnswer(fullAnswer);
+
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+              <h3>❌ 请求失败</h3>
+              <div class="result-content">${error.message}</div>
+          </div>
+        `;
+      } finally {
+        askBtn.disabled = false;
+        askBtn.textContent = '开始问答';
+        questionInput.disabled = false;
+      }
+    }
+
+    // 格式化答案（处理简单的 Markdown）
+    function formatAnswer(text) {
+      // 转义 HTML
+      let formatted = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // 处理换行
+      formatted = formatted.replace(/\n/g, '<br>');
+
+      // 处理加粗 **text**
+      formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+      // 处理斜体 *text*
+      formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+      return formatted;
+    }
+  </script>
+</body>
+
+</html>

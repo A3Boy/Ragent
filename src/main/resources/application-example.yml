@@ -1,0 +1,64 @@
+# 复制本文件为 application.yml 并填入你的 API Key
+# cp application-example.yml application.yml
+
+spring:
+  application:
+    name: RAGent
+
+  profiles:
+    active: default
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ragent_db
+    username: postgres
+    password: your-db-password
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.openai.autoconfigure.OpenAiAutoConfiguration
+
+  ai:
+    dashscope:
+      api-key: your-dashscope-api-key
+
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 1024
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        schema-name: public
+        table-name: vector_store
+
+ragent:
+  jwt:
+    secret: your-jwt-secret-at-least-256-bits
+    expiration: 86400000  # 24小时
+
+  ai:
+    default-provider: deepseek
+    providers:
+      - id: bailian
+        name: 阿里云百炼 Qwen
+        type: openai-compatible
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        api-key: your-dashscope-api-key
+        model: qwen3.6-plus
+        temperature: 0.7
+        max-tokens: 4096
+        enabled: true
+
+      - id: deepseek
+        name: DeepSeek V4
+        type: openai-compatible
+        base-url: https://api.deepseek.com
+        api-key: your-deepseek-api-key
+        model: deepseek-v4-flash
+        model-type: chat
+        temperature: 0.7
+        max-tokens: 4096
+        enabled: true
